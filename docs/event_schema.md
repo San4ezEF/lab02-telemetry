@@ -1,18 +1,46 @@
-# Схема событий
+# Схема игровых событий
 
-| Событие | Обязательные поля | Доп. поля | Когда |
+## Формат передачи
+
+Событие - JSON-объект. Клиент отправляет массив событий в `POST /events`
+с заголовком `Content-Type: application/json`. В `data/events.jsonl` каждое
+событие записывается отдельной строкой, без внешнего массива.
+
+## Поля
+
+| Поле | JSON-тип | Обязательность | Значение |
 |---|---|---|---|
-| session_start | session_id, player_id, ts | level | старт сессии |
-| death | session_id, ts, level, x, y | cause | смерть игрока |
-| checkpoint | … | … | … |
-| level_complete | … | time_s | … |
-| session_end | … | reason | … |
+| `session_id` | string | Всегда | Идентификатор сессии, 1–64 символа |
+| `player_id` | string | Всегда | Постоянный идентификатор игрока, 1–64 символа |
+| `event_type` | string | Всегда | Один из пяти типов, перечисленных ниже |
+| `ts` | number | Всегда | Unix-время события в секундах, включая дробную часть; не меньше нуля |
+| `level` | string | Всегда | Уровень в момент события, 1–32 символа; например `L1` |
+| `x`, `y` | number | Для `death`; иначе необязательны | Координаты в системе уровня, передаются парой |
+| `cause` | string | Необязательно, только для `death` | Причина смерти, 1–64 символа; например `spikes` |
+| `time_s` | number | Необязательно, только для `level_complete` | Время прохождения уровня в секундах, не меньше нуля |
+| `reason` | string | Необязательно, только для `session_end` | Причина окончания, 1–64 символа; например `quit` |
 
-## ER-диаграмма
 
-```mermaid
-erDiagram
-    PLAYER ||--o{ SESSION : has
-    SESSION ||--o{ EVENT : contains
-    EVENT { int id  string event_type  float ts  float x  float y  json payload }
+## Типы событий
+
+| Тип | Дополнительные обязательные поля | Необязательные поля | Когда создаётся |
+|---|---|---|---|
+| `session_start` | Нет | `x`, `y` | Один раз в начале новой игровой сессии |
+| `death` | `x`, `y` | `cause` | При каждой смерти игрока |
+| `checkpoint` | Нет | `x`, `y` | При достижении контрольной точки |
+| `level_complete` | Нет | `x`, `y`, `time_s` | При завершении уровня |
+| `session_end` | Нет | `x`, `y`, `reason` | Один раз при завершении сессии, в том числе после прохождения |
+
+
+
+## Пример пакета HTTP
+
+```json
+[
+  {"session_id": "s1", "player_id": "p1", "event_type": "session_start", "ts": 1727080000.0, "level": "L1"},
+  {"session_id": "s1", "player_id": "p1", "event_type": "death", "ts": 1727080042.5, "level": "L1", "x": 12.4, "y": 3.1, "cause": "spikes"},
+  {"session_id": "s1", "player_id": "p1", "event_type": "checkpoint", "ts": 1727080090.1, "level": "L1", "x": 40.0, "y": 5.0},
+  {"session_id": "s1", "player_id": "p1", "event_type": "level_complete", "ts": 1727080155.0, "level": "L1", "time_s": 155.0},
+  {"session_id": "s1", "player_id": "p1", "event_type": "session_end", "ts": 1727080300.0, "level": "L2", "reason": "quit"}
+]
 ```

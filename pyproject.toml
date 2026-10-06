@@ -1,11 +1,15 @@
 [project]
 name = "lab02-telemetry"
 version = "0.1.0"
-description = "Учебный проект по дисциплине «Игровой ИИ»"
-requires-python = ">=3.10"
+description = ""
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110",
-    "uvicorn[standard]>=0.29",
+    "uvicorn>=0.29",
+    "pydantic>=2,<3",
+    "SQLAlchemy>=2,<3",
+    "psycopg[binary]>=3.2,<4",
+    "python-dotenv>=1,<2",
     "pandas>=2.1",
     "matplotlib>=3.8",
     "streamlit>=1.33",
@@ -13,11 +17,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.5", "pre-commit>=3"]
+dev = ["pytest>=8", "ruff>=0.5", "pre-commit>=3", "httpx>=0.27,<1"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py311"
 exclude = ["notebooks", ".venv"]
 
 [tool.ruff.lint]
