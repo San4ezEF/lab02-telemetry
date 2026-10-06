@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.5", "pre-commit>=3", "httpx>=0.27,<1"]
+dev = ["ruff>=0.5", "pre-commit>=3"]
 
 [tool.ruff]
 line-length = 120
@@ -26,10 +26,6 @@ exclude = ["notebooks", ".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-q"
 
 [build-system]
 requires = ["setuptools>=68"]

@@ -1,80 +1,79 @@
-# Лабораторная работа № 2. Сбор и анализ игровой телеметрии
+# Лабораторная работа № 2. Игровая телеметрия
 
-Дисциплина «Игровой искусственный интеллект»
+Сбор событий и анализ поведения игроков: длительность сессий, D1 retention,
+карты смертей и конверсия прохождения.
 
+**Стек:** Python 3.11+, FastAPI, PostgreSQL, SQLAlchemy, psycopg, pandas, matplotlib, Streamlit.
 
-## Стек
-
-Unity/Python клиент · SQLite/PostgreSQL · pandas · Streamlit/Jupyter
-
-## Что нужно сдать
-
-- [ ] Клиентский логгер событий
-- [ ] БД с 20+ сессиями
-- [ ] Скрипт анализа: 4 расчёта (длина сессий, retention, heatmap смертей, конверсия)
-- [ ] Дашборд с 3+ визуализациями
-
-Полное задание, критерии оценки и типичные ошибки — в методических указаниях (ЛР № 2).
-
-## Структура
-
-```
-client/python_logger.py        логгер событий (JSON Lines → файл или HTTP POST)
-client/unity/TelemetryLogger.cs  то же для Unity
-server/app.py                  FastAPI: POST /events → SQLite
-analysis/analyze.py            4 расчёта + сохранение графиков в results/
-dashboard/app.py               Streamlit-дашборд
-docs/event_schema.md           схема событий (заполнить)
+```text
+client/python_logger.py -> HTTP POST /events -> server/app.py -> PostgreSQL
+                                                               |
+                                                     analysis/analyze.py
+                                                        /           \
+                                                    results/   dashboard/app.py
 ```
 
-```bash
-pip install -r requirements.txt   # или: make install (все команды: make help)
-uvicorn server.app:app --reload         # сервер
-python client/python_logger.py --simulate 20   # 20 синтетических сессий
-python analysis/analyze.py && streamlit run dashboard/app.py
+## Подготовка
+
+Нужна запущенная служба PostgreSQL, база `game_telemetry` и роль `telemetry_user`
+с правами подключения и создания таблиц в схеме `public`.
+Настройки подключения задаются в `.env` по образцу `.env.example`.
+`.env` содержит пароль и не включается в Git.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## Пример выполнения
+## Запуск
 
-**Где это в играх.** Bungie при разработке Halo 3 строила тепловые карты смертей на мультиплеерных картах и по ним
-находила перекошенные позиции. King отслеживает, на каком уровне Candy Crush игроки застревают и бросают игру, и
-по этим данным подстраивает сложность. В free-to-play-играх метрики retention D1/D7/D30 решают судьбу проекта:
-игру с низким удержанием закрывают ещё в софт-запуске.
+Команды выполняются из корня проекта. В первом терминале:
 
-**Зачем:** разработчик не видит, как играют тысячи людей, и телеметрия заменяет ему наблюдение. Логгер → БД → анализ →
-дашборд из этой ЛР — уменьшенная копия этого пайплайна.
-
-**Пример событий одной сессии** (`data/events.jsonl`, одна строка на событие):
-
-```json
-{"session_id": "a1f3", "player_id": "p5", "event_type": "session_start", "ts": 1727080000.0, "level": "L1"}
-{"session_id": "a1f3", "player_id": "p5", "event_type": "death", "ts": 1727080042.5, "level": "L1", "x": 12.4, "y": 3.1, "cause": "spikes"}
-{"session_id": "a1f3", "player_id": "p5", "event_type": "checkpoint", "ts": 1727080090.1, "level": "L1", "x": 40.0, "y": 5.0}
-{"session_id": "a1f3", "player_id": "p5", "event_type": "level_complete", "ts": 1727080155.0, "level": "L1", "time_s": 155.0}
-{"session_id": "a1f3", "player_id": "p5", "event_type": "session_end", "ts": 1727080300.0, "level": "L2", "reason": "quit"}
+```powershell
+.\.venv\Scripts\python.exe -m server.models
+.\.venv\Scripts\python.exe -m uvicorn server.app:app --reload
 ```
 
-**Пример расчёта: длина сессии** (SQL поверх таблицы `events`):
+API: <http://127.0.0.1:8000/docs>. Проверка подключения к БД: <http://127.0.0.1:8000/health>.
+
+Во втором терминале:
+
+```powershell
+.\.venv\Scripts\python.exe client/python_logger.py --simulate 20 --seed 42
+.\.venv\Scripts\python.exe analysis/analyze.py
+.\.venv\Scripts\python.exe -m streamlit run dashboard/app.py
+```
+
+Dashboard: <http://localhost:8501>. Повторная генерация добавляет новые сессии.
+
+## Просмотр PostgreSQL
+
+В pgAdmin выберите `game_telemetry` и откройте Query Tool:
 
 ```sql
-SELECT session_id, MAX(ts) - MIN(ts) AS length_s
-FROM events
-GROUP BY session_id
-ORDER BY length_s DESC;
+SELECT * FROM public.events ORDER BY id LIMIT 20;
+
+SELECT count(*) AS events,
+       count(DISTINCT session_id) AS sessions,
+       count(DISTINCT player_id) AS players
+FROM public.events;
+
+SELECT event_type, count(*) FROM public.events GROUP BY event_type ORDER BY event_type;
 ```
 
-**Как определить метрики** (формулировки обязательно приведите в README):
+## Метрики и результаты
 
-| Метрика | Определение |
-|---|---|
-| Длина сессии | `ts(session_end) − ts(session_start)`, медиана и гистограмма |
-| Retention D1 | доля игроков, у которых есть сессия на следующий день после первой |
-| Heatmap смертей | 2D-гистограмма `(x, y)` событий `death`, отдельно по уровням |
-| Конверсия | воронка `session_start → checkpoint → level_complete`, % на каждом шаге |
+- Длительность: `session_end.ts - session_start.ts`; сессии без корректного окончания исключаются.
+- D1: доля игроков с новой сессией на следующий календарный день UTC после первой сессии.
+- Heatmap: число смертей в ячейках 5×5, отдельно по уровням; пунктиром отмечены зоны симулятора.
+- Воронка: уникальные сессии, последовательно достигшие `session_start`, `checkpoint`, `level_complete`.
+  Проценты считаются от начала, потери — от предыдущего этапа.
+- Фильтр dashboard выбирает сессии по начальному уровню; D1 остаётся общим для всех игроков.
 
-**Пример вывода:** «60 % смертей на L1 приходится на участок x ∈ [10, 15] (шипы), воронка теряет 45 % игроков между
-checkpoint и level_complete — участок стоит упростить». Главное — не только график, но и вывод по нему.
+Скрипт анализа создаёт в `results/` таблицы CSV, графики PNG и краткие выводы `conclusions.txt`.
+Соответствие номеров heatmap уровням записывается в `levels.csv`.
+Схема событий: [docs/event_schema.md](docs/event_schema.md).
 
-**Дашборд:** гистограмма длины сессий, heatmap смертей поверх схемы уровня, воронка конверсии, фильтр по уровню.
-
-
+Контрольный запуск на пустой БД с `--simulate 20 --seed 42`: 107 событий, 20 сессий,
+12 игроков; D1 — 4/12 = 33,33%; медиана — 262,5 с; воронка — 20 → 16 → 8.
+Это синтетические данные для демонстрации расчётов.

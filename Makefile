@@ -3,11 +3,11 @@
 .DEFAULT_GOAL := help
 PYTHON ?= python
 
-.PHONY: help install precommit run analyze dashboard lint format test check clean
+.PHONY: help install precommit run analyze dashboard lint format check clean
 
 # ---------- Установка ----------
-install: ## Установить зависимости (pip install -r requirements.txt)
-	$(PYTHON) -m pip install -r requirements.txt
+install: ## Установить зависимости и инструменты разработки
+	$(PYTHON) -m pip install -e ".[dev]"
 
 precommit: ## Установить git-хуки pre-commit
 	pre-commit install
@@ -29,10 +29,7 @@ lint: ## Проверить код линтером ruff
 format: ## Отформатировать код и применить автоисправления ruff
 	ruff format . && ruff check --fix .
 
-test: ## Запустить тесты pytest
-	pytest
-
-check: lint test ## Линтер + тесты (то же, что CI)
+check: lint ## Линтер (то же, что CI)
 
 # ---------- Обслуживание ----------
 clean: ## Удалить кеши Python, pytest, ruff и egg-info

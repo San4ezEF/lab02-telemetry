@@ -14,6 +14,9 @@ build/
 # Данные и артефакты экспериментов (крупные файлы — не в git)
 data/raw/
 data/processed/
+data/*.jsonl
+results/*
+!results/.gitkeep
 *.db
 *.sqlite
 runs/
