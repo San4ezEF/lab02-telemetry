@@ -1,0 +1,16 @@
+# Зависимости проекта. Установка: pip install -r requirements.txt
+# Источник версий — pyproject.toml, при добавлении пакета правьте оба файла.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pandas>=2.1
+matplotlib>=3.8
+streamlit>=1.33
+requests>=2.31
+
+# Инструменты разработки: тесты, линтер, pre-commit
+pytest>=8
+ruff>=0.5
+pre-commit>=3
+
+# Установка самого проекта в режиме разработки (чтобы работали импорты из src/)
+-e .

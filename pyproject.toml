@@ -1,0 +1,36 @@
+[project]
+name = "lab02-telemetry"
+version = "0.1.0"
+description = "Учебный проект по дисциплине «Игровой ИИ»"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pandas>=2.1",
+    "matplotlib>=3.8",
+    "streamlit>=1.33",
+    "requests>=2.31"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5", "pre-commit>=3"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+exclude = ["notebooks", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["server*", "analysis*", "client*"]
