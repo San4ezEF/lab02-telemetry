@@ -9,8 +9,8 @@ import pandas as pd
 from sqlalchemy import select
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.patches import Rectangle  # noqa: E402
+import matplotlib.pyplot as plt  
+from matplotlib.patches import Rectangle 
 
 RES = Path(__file__).resolve().parents[1] / "results"
 STAGES = ["session_start", "checkpoint", "level_complete"]

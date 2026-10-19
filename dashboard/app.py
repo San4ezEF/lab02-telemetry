@@ -5,7 +5,7 @@ import streamlit as st
 from sqlalchemy.exc import SQLAlchemyError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from analysis.analyze import (  # noqa: E402
+from analysis.analyze import (  
     death_figure,
     funnel,
     funnel_figure,
